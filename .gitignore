@@ -1,0 +1,85 @@
+# --- Node.js genel ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json   # KALMASINI İSTİYORSAN bunu kaldırma; genelde commit edilir.
+
+# --- Derleme/çıktılar ---
+dist/
+build/
+.tmp/
+.temp/
+.cache/
+.esbuild/
+.rollup.cache/
+
+# --- TypeScript (varsa) ---
+*.tsbuildinfo
+
+# --- Test ve coverage ---
+coverage/
+.nyc_output/
+.jest/
+jest-cache/
+
+# --- Loglar ---
+logs/
+*.log
+*.log.*
+*.pid
+pids/
+*.pid.lock
+
+# --- Ortam değişkenleri (.env) ---
+# Gerçek env dosyalarını ignore et
+.env
+.env.*
+env/.env*
+# Örnek env dosyalarını repo’da tut
+!*.example
+!env/*.example
+
+# --- Config dosyaları ---
+# Gerçek müşteri config’leri ignore
+configs/*.config.json
+# Örnek config’leri repo’da tut
+!configs/*.example.json
+
+# --- PM2 (lokal log/çıkışlar) ---
+pm2-logrotate/
+pm2.logs/
+*.pm2.log
+
+# --- IDE / OS çöplükleri ---
+# macOS / Windows
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# JetBrains / VS Code
+.idea/
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/tasks.json
+
+# Editör geçici dosyaları
+*.swp
+*.swo
+*.orig
+*.rej
+
+# --- Veri dosyaları / dump'lar ---
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+dump.sql
+backups/
