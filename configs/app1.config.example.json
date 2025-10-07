@@ -1,0 +1,22 @@
+{
+  "port": 6001,
+  "nodeName": "NODE_X",
+  "remoteApiBase": "http://localhost:6002",
+  "apply": true,
+  "pollMs": 5000,
+  "enableChangeTracking": {
+    "enable": true,
+    "retentionDays": 7,
+    "trackColumnsUpdated": true,
+    "tables": [
+      "dbo.Documents"
+    ]
+  },
+  "flows": [
+    {
+      "table": "dbo.Documents"
+    }
+  ]
+}
+
+// Not: flows kısmında karşıya gönderilecek tablolar belirtilir. Birden fazla tablo eklenebilir.
