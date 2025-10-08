@@ -14,11 +14,13 @@ module.exports = {
       }
     },
     {
-      name: "dbsync-b",
+      name: "dbsync-b-Debug",
       script: "./index.js",
+      node_args: "--inspect=9229",
+      watch: false,
       cwd: ".",
       env: {
-        NODE_ENV: "production",
+        NODE_ENV: "development",
         // B için .env ve config:
         ENV_PATH: "env/.env.app2",
         CONFIG_PATH: "./configs/app2.config.json"
