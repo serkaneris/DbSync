@@ -21,41 +21,69 @@ export async function sonSenkSurumunuGuncelle(table, ver) {
     .query('UPDATE dbo.SyncState SET LastSyncVersion=@v WHERE TableName=@t');
 }
 
-export function degisiklikSorgusuOlustur(table) {
+export function degisiklikSorgusuOlustur(tableQualified /* 'dbo.DocumentDetailCosts' */) {
   return `
+DECLARE @qualified NVARCHAR(300) = 
+  QUOTENAME(PARSENAME(N'${tableQualified}', 2)) + N'.' + QUOTENAME(PARSENAME(N'${tableQualified}', 1));
 
-
-
-  
-
+-- Id dışındaki kolonları güvenli şekilde listele
 DECLARE @cols NVARCHAR(MAX);
+SELECT @cols = STRING_AGG(QUOTENAME(c.name), N', ')
+FROM sys.columns AS c
+WHERE c.object_id = OBJECT_ID(@qualified)
+  AND c.name <> N'Id';
 
-SELECT @cols = STRING_AGG(name, ', ')
-FROM sys.columns
-WHERE object_id = OBJECT_ID('${table}')
-  AND name <> 'Id';
+IF @cols IS NULL SET @cols = N'';
 
-
-  DECLARE @sql NVARCHAR(MAX) = '
-
-  ;
+DECLARE @sql NVARCHAR(MAX) = N'
 WITH C AS (
-  SELECT ct.SYS_CHANGE_VERSION AS Ver, ct.SYS_CHANGE_OPERATION AS Op, ct.Id
-  FROM CHANGETABLE(CHANGES ${table}, 0) ct
+  SELECT ct.SYS_CHANGE_VERSION AS Ver, ct.SYS_CHANGE_OPERATION AS Op, ct.[Id]
+  FROM CHANGETABLE(CHANGES ' + @qualified + N', @last) AS ct
 )
-SELECT C.Ver, C.Op, C.Id,' + @cols + '
-FROM C
-LEFT JOIN ${table} AS T ON T.Id = C.Id
-ORDER BY C.Ver ASC;
+SELECT C.Ver, C.Op, C.Id'
++ CASE WHEN @cols <> N'' THEN N', ' + @cols ELSE N'' END + N'
+FROM ' + @qualified + N' AS T
+RIGHT JOIN C ON T.[Id] = C.[Id]
+ORDER BY C.Ver ASC;';
 
-
-';
-
-EXEC sp_executesql @sql;
-
-
+-- DIKKAT: Burada @last'ı YENIDEN DECLARE ETMIYORUZ.
+EXEC sp_executesql @sql, N'@last BIGINT', @last = @last;
 `;
 }
+
+//#region ESKI SÜRÜM (Bu kısım delta değişikliği değil tüm satırları getiriyordu)
+// export function degisiklikSorgusuOlustur(table) {
+//   return `
+
+// DECLARE @cols NVARCHAR(MAX);
+
+// SELECT @cols = STRING_AGG(name, ', ')
+// FROM sys.columns
+// WHERE object_id = OBJECT_ID('${table}')
+//   AND name <> 'Id';
+
+
+//   DECLARE @sql NVARCHAR(MAX) = '
+
+//   ;
+// WITH C AS (
+//   SELECT ct.SYS_CHANGE_VERSION AS Ver, ct.SYS_CHANGE_OPERATION AS Op, ct.Id
+//   FROM CHANGETABLE(CHANGES ${table}, 0) ct
+// )
+// SELECT C.Ver, C.Op, C.Id,' + @cols + '
+// FROM C
+// LEFT JOIN ${table} AS T ON T.Id = C.Id
+// ORDER BY C.Ver ASC;
+
+
+// ';
+
+// EXEC sp_executesql @sql;
+
+
+// `;
+// }
+//#endregion
 
 export async function yerelDegisiklikleriGonder(table, nodeName) {
   const pool = await havuzaBaglan();
