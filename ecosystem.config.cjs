@@ -2,7 +2,7 @@
 module.exports = {
   apps: [
     {
-      name: "dbsync-a",
+      name: "DbSync-a",
       script: "./index.js",
       cwd: ".",
       // Windows yollarını ters-eksiyle yazabilirsiniz; node hepsini anlar.
@@ -14,7 +14,7 @@ module.exports = {
       }
     },
     {
-      name: "dbsync-b-Debug",
+      name: "DbSync-b-Debug",
       script: "./index.js",
       node_args: "--inspect=9229",
       watch: false,
