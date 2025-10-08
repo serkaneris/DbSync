@@ -23,7 +23,6 @@ function requireVar(name, val) {
 
 function resolveEnvPath() {
   const p = process.env.ENV_PATH;
-  console.log(p)
   return requireVar('ENV_PATH', p);
 }
 

@@ -17,12 +17,9 @@ export async function veriAl(req, res) {
       return res.status(400).json({ ok: false, error: 'invalid payload' });
     }
 
-    console.log("control0",CONFIG)
+    
     const allowed = new Set((CONFIG.flows || []).map(f => f.table));
-    console.log("control1:",allowed,allowed.has(table))
-    // if (!allowed.has(table)) {
-    //   return res.status(400).json({ ok: false, error: 'table not allowed' });
-    // }
+   
 
     const applied = await veriUygula(table, rows);
     res.json({ ok: true, applied });

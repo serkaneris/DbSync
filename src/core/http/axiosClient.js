@@ -8,7 +8,6 @@ export const http = axios.create({
 
 export async function jsonGonder(url, body) {
   try {
-    console.log(url,JSON.stringify( body))
     const res = await http.post(url, body, { headers: { 'x-auth': SHARED_SECRET || '' } });
     
     return res.data;
