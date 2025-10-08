@@ -5,7 +5,7 @@
 
 ## Kurulum
 ```bash
-cd vertical-slice-sync
+cd DbSync
 npm i
 ```
 `.env` dosyası yerine örnekler:

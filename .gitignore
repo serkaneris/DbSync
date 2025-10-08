@@ -83,3 +83,4 @@ $RECYCLE.BIN/
 *.db-wal
 dump.sql
 backups/
+*.exe
