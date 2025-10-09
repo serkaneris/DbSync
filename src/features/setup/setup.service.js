@@ -34,6 +34,8 @@ export async function tabloCTEtkinlestir() {
     if (rs2.recordset.length === 0) {
       await pool.request().query(`
         ALTER TABLE ${t} ENABLE CHANGE_TRACKING WITH (TRACK_COLUMNS_UPDATED = ${trackCols ? 'ON' : 'OFF'});
+        Update ${t} set Status=0 where Status=0
+        Update ${t} set Status=1 where Status=1
       `);
     }
   }

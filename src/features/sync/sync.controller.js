@@ -28,3 +28,4 @@ export async function veriAl(req, res) {
     res.status(500).json({ ok: false, error: e.message });
   }
 }
+
