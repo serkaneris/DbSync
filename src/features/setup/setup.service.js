@@ -1,7 +1,7 @@
 import { getConnectionPool, sql } from '../../core/db/mssql.js';
 import { CONFIG } from '../../core/config.js';
 
-export async function veritabaniCTEtkinlestir() {
+export async function enableDatabaseCT() {
   if (!CONFIG.enableChangeTracking || CONFIG.enableChangeTracking.enable === false) return;
   const pool = await getConnectionPool();
 
@@ -17,7 +17,7 @@ export async function veritabaniCTEtkinlestir() {
   }
 }
 
-export async function tabloCTEtkinlestir() {
+export async function enableTableCT() {
   if (!CONFIG.enableChangeTracking || CONFIG.enableChangeTracking.enable === false) return;
   const pool = await getConnectionPool();
   const trackCols = CONFIG.enableChangeTracking.trackColumnsUpdated !== false;
@@ -41,7 +41,7 @@ export async function tabloCTEtkinlestir() {
   }
 }
 
-export async function syncStateTablosunuBaslat() {
+export async function ensureSyncStateTable() {
   const pool = await getConnectionPool();
 
   const exists = await pool.request().query(`

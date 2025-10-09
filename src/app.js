@@ -4,14 +4,14 @@ import { getConnectionPool } from './core/db/mssql.js';
 
 import healthRoutes from './features/health/health.routes.js';
 import syncRoutes from './features/sync/sync.routes.js';
-import { uygulamaAcilisHazirliklari } from './features/setup/setup.startup.js';
+import { prepareApplicationStartup } from './features/setup/setup.startup.js';
 import { startPeriodicProducer } from './features/producer/producer.job.js';
 
 export async function initializeApp() {
   await getConnectionPool();
   console.log('✅ DB bağlantısı hazır');
 
-  await uygulamaAcilisHazirliklari();
+  await prepareApplicationStartup();
 
   const app = express();
   app.use(express.json({ limit: '5mb' }));
