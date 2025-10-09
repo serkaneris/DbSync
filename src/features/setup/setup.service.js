@@ -1,9 +1,9 @@
-import { havuzaBaglan, sql } from '../../core/db/mssql.js';
+import { getConnectionPool, sql } from '../../core/db/mssql.js';
 import { CONFIG } from '../../core/config.js';
 
 export async function veritabaniCTEtkinlestir() {
   if (!CONFIG.enableChangeTracking || CONFIG.enableChangeTracking.enable === false) return;
-  const pool = await havuzaBaglan();
+  const pool = await getConnectionPool();
 
   const retentionDays = Number(CONFIG.enableChangeTracking.retentionDays || 7);
   const exists = await pool.request().query(`
@@ -19,7 +19,7 @@ export async function veritabaniCTEtkinlestir() {
 
 export async function tabloCTEtkinlestir() {
   if (!CONFIG.enableChangeTracking || CONFIG.enableChangeTracking.enable === false) return;
-  const pool = await havuzaBaglan();
+  const pool = await getConnectionPool();
   const trackCols = CONFIG.enableChangeTracking.trackColumnsUpdated !== false;
   const tables = CONFIG.enableChangeTracking.tables || [];
 
@@ -42,7 +42,7 @@ export async function tabloCTEtkinlestir() {
 }
 
 export async function syncStateTablosunuBaslat() {
-  const pool = await havuzaBaglan();
+  const pool = await getConnectionPool();
 
   const exists = await pool.request().query(`
     SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID('dbo.SyncState') AND type='U';
@@ -69,7 +69,7 @@ export async function syncStateTablosunuBaslat() {
 
 // 1) CleanQueue tablosu
 export async function ensureCleanQueue() {
-  const pool = await havuzaBaglan();
+  const pool = await getConnectionPool();
   await pool.request().query(`
 IF NOT EXISTS (
   SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'dbo.CleanQueue') AND type = 'U'
@@ -97,7 +97,7 @@ END;
  * Ensure ApplyLog exists and has BatchId column for per-batch cleanup.
  */
 export async function ensureApplyLog() {
-  const pool = await havuzaBaglan();
+  const pool = await getConnectionPool();
   const ddlTable = `
 IF NOT EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ApplyLog]') AND type in (N'U'))
 BEGIN

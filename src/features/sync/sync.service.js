@@ -1,5 +1,5 @@
 
-import { havuzaBaglan, sql } from '../../core/db/mssql.js';
+import { getConnectionPool, sql } from '../../core/db/mssql.js';
 import { mergeSorgusuOlustur, paramBagla } from './sync.helpers.js';
 
 
@@ -12,7 +12,7 @@ import { mergeSorgusuOlustur, paramBagla } from './sync.helpers.js';
  * Idempotent: insert ApplyLog first; duplicate -> skip row.
  */
 export async function veriUygula(safeTable, rows, batchId = null) {
-  const pool = await havuzaBaglan();
+  const pool = await getConnectionPool();
 
 
   const tx = new sql.Transaction(pool);
@@ -90,7 +90,7 @@ WHEN NOT MATCHED THEN
  * Batch bazlı temizlik: belirli BatchId'ye ait ApplyLog kayıtlarını sil.
  */
 export async function temizleApplyLogByBatch(batchId) {
-  const pool = await havuzaBaglan();
+  const pool = await getConnectionPool();
  
 
   const start = Date.now();

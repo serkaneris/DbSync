@@ -1,15 +1,15 @@
 import express from 'express';
 import { PORT, CONFIG } from './core/config.js';
-import { havuzaBaglan } from './core/db/mssql.js';
+import { getConnectionPool } from './core/db/mssql.js';
 
 import healthRoutes from './features/health/health.routes.js';
 import syncRoutes from './features/sync/sync.routes.js';
 import { uygulamaAcilisHazirliklari } from './features/setup/setup.startup.js';
-import { periyodikUreticiBaslat } from './features/producer/producer.job.js';
+import { startPeriodicProducer } from './features/producer/producer.job.js';
 
-export async function uygulamayiBaslat() {
-  await havuzaBaglan();
-  console.log('[ok] DB bağlantısı hazır');
+export async function initializeApp() {
+  await getConnectionPool();
+  console.log('✅ DB bağlantısı hazır');
 
   await uygulamaAcilisHazirliklari();
 
@@ -19,6 +19,6 @@ export async function uygulamayiBaslat() {
   app.use('/', healthRoutes);
   app.use('/', syncRoutes);
 
-  app.listen(PORT, () => console.log(`[ok] API listening on ${PORT}`));
-  periyodikUreticiBaslat(CONFIG.nodeName);
+  app.listen(PORT, () => console.log(`✅ API listening on ${PORT}`));
+  startPeriodicProducer(CONFIG.nodeName);
 }

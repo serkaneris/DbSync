@@ -1,5 +1,5 @@
 
-import { sql, havuzaBaglan } from '../../core/db/mssql.js';
+import { sql, getConnectionPool } from '../../core/db/mssql.js';
 import { CONFIG } from '../../core/config.js';
 import { sendBatchParts } from '../../core/http/axiosClient.js';
 import { postJsonGzip } from '../../core/http/axiosClient.js';
@@ -9,13 +9,13 @@ import crypto from 'crypto';
    CT yardımcıları
    ====================== */
 export async function gecerliCTSurumunuAl() {
-  const pool = await havuzaBaglan();
+  const pool = await getConnectionPool();
   const r = await pool.request().query('SELECT CHANGE_TRACKING_CURRENT_VERSION() AS v');
   return Number(r.recordset[0].v);
 }
 
 export async function sonSenkSurumunuAl(table) {
-  const pool = await havuzaBaglan();
+  const pool = await getConnectionPool();
   const r = await pool.request()
     .input('t', sql.NVarChar, table)
     .query('SELECT LastSyncVersion FROM dbo.SyncState WHERE TableName=@t');
@@ -23,7 +23,7 @@ export async function sonSenkSurumunuAl(table) {
 }
 
 export async function sonSenkSurumunuGuncelle(table, ver) {
-  const pool = await havuzaBaglan();
+  const pool = await getConnectionPool();
   await pool.request()
     .input('v', sql.BigInt, ver)
     .input('t', sql.NVarChar, table)
@@ -119,7 +119,7 @@ async function applyLogCleanFully(remoteBase, batchId, {
    Ana akış (axiosClient yardımcılarını kullanır)
    ====================== */
 export async function yerelDegisiklikleriGonder(table, nodeName) {
-  const pool = await havuzaBaglan();
+  const pool = await getConnectionPool();
   const fromVersion = await sonSenkSurumunuAl(table);
   const toVersion   = await gecerliCTSurumunuAl();
 
