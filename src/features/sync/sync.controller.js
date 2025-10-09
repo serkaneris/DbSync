@@ -1,5 +1,5 @@
 
-import { veriUygula, temizleApplyLogByBatch } from './sync.service.js';
+import { applyChanges, deleteApplyLogByBatchId } from './sync.service.js';
 import { CONFIG, SHARED_SECRET } from '../../core/config.js';
 
 /**
@@ -11,7 +11,7 @@ function validateTable(table) {
   return /^[A-Za-z0-9_]+\.[A-Za-z0-9_]+$/.test(table);
 }
 
-export async function veriAl(req, res) {
+export async function handleIncomingData(req, res) {
   try {
     const auth = (req.headers['x-auth'] || '');
     if (!auth || auth !== (SHARED_SECRET || '')) {
@@ -50,7 +50,7 @@ export async function veriAl(req, res) {
     if (!highestAppliedVersion && toVersion) highestAppliedVersion = Number(toVersion) || 0;
 
     // Uygula (idempotent + transaction)
-    const applied = await veriUygula(table, rows, batchId || null);
+    const applied = await applyChanges(table, rows, batchId || null);
 
     // ACK
     res.json({
@@ -67,7 +67,7 @@ export async function veriAl(req, res) {
       highestAppliedVersion
     });
   } catch (e) {
-    console.error('[err] /veri-al', e);
+    console.error('[err] /apply-changes', e);
     const status = e?.statusCode || 500;
     res.status(status).json({ ok: false, error: e.message });
   }
@@ -93,7 +93,7 @@ export async function applyLogClean(req, res) {
     const { batchId } = req.body || {};
     if (!batchId) return res.status(400).json({ ok: false, error: 'batchId required' });
 
-    const deleted = await temizleApplyLogByBatch(batchId);
+    const deleted = await deleteApplyLogByBatchId(batchId);
 
     res.json({ ok: true, deleted, batchId });
   } catch (e) {

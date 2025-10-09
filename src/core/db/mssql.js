@@ -8,7 +8,5 @@ export async function getConnectionPool() {
   }
   return pool;
 }
-export function yeniIstek(txOrPool = null) {
-  return new (txOrPool ? sql.Request : sql.Request)(txOrPool || pool);
-}
+
 export { sql };

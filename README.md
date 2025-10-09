@@ -21,7 +21,7 @@ ENV_PATH=env/.env.app2 CONFIG_PATH=./config.json node index.js
 
 ## HTTP Uçları
 - `GET /api-status` → basit sağlık kontrolü
-- `POST /veri-al` → tüketici (consumer) uç. Gövde: `{ table, rows }`
+- `POST /apply-changes` → tüketici (consumer) uç. Gövde: `{ table, rows }`
   - Başlıkta: `x-auth: <SHARED_SECRET>`
 
 ## Producer

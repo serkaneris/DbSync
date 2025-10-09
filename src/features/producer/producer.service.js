@@ -118,7 +118,7 @@ async function applyLogCleanFully(remoteBase, batchId, {
 /* ======================
    Ana akış (axiosClient yardımcılarını kullanır)
    ====================== */
-export async function yerelDegisiklikleriGonder(table, nodeName) {
+export async function pushLocalChanges(table, nodeName) {
   const pool = await getConnectionPool();
   const fromVersion = await sonSenkSurumunuAl(table);
   const toVersion   = await gecerliCTSurumunuAl();
@@ -137,7 +137,7 @@ export async function yerelDegisiklikleriGonder(table, nodeName) {
 
   // Gönderim/temizlik için meta
   const parts   = chunkRows(rows, { maxRows: 4000, maxBytes: 3_500_000 });
-  const url     = `${CONFIG.remoteApiBase}/veri-al`;
+  const url     = `${CONFIG.remoteApiBase}/apply-changes`;
   const batchId = crypto.randomUUID();
   const baseMeta = { batchId, table, sourceDb: nodeName, fromVersion, toVersion };
 
@@ -168,7 +168,7 @@ export async function yerelDegisiklikleriGonder(table, nodeName) {
 
   } catch (err) {
     // ÖNEMLİ: Hata varsa versiyonu İLERLETME!
-    console.error('[yerelDegisiklikleriGonder] hata:', {
+    console.error('[pushLocalChanges] hata:', {
       table, batchId, fromVersion, toVersion, message: err?.message
     });
     // üst kata fırlat ki çağıran katman (job/cron) yeniden denesin

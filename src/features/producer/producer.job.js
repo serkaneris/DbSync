@@ -1,5 +1,5 @@
 import { CONFIG } from '../../core/config.js';
-import { yerelDegisiklikleriGonder } from './producer.service.js';
+import { pushLocalChanges } from './producer.service.js';
 
 export function startPeriodicProducer(nodeName) {
   const POLL_MS = CONFIG.pollMs || 10000;
@@ -8,7 +8,7 @@ export function startPeriodicProducer(nodeName) {
       try {
         console.log('🔍', f.table);
         
-        const r = await yerelDegisiklikleriGonder(f.table, nodeName);
+        const r = await pushLocalChanges(f.table, nodeName);
         if (r.sent > 0) console.log(`🔄 ${nodeName} pushed ${r.sent} rows from ${f.table} (${r.last}→${r.current})`);
         else console.log(`✅ ${nodeName} ${f.table}: no changes (${r.last}→${r.current})`);
       } catch (e) {

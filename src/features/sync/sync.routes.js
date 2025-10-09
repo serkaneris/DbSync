@@ -1,9 +1,9 @@
 import express from 'express';
-import { veriAl, applyLogClean } from './sync.controller.js';
+import { handleIncomingData, applyLogClean } from './sync.controller.js';
 
 const router = express.Router();
 
-router.post('/veri-al', veriAl);
+router.post('/apply-changes', handleIncomingData);
 router.post('/applyLogClean', applyLogClean);
 
 export default router;

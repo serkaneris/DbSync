@@ -11,7 +11,7 @@ import { mergeSorgusuOlustur, paramBagla } from './sync.helpers.js';
  * Atomic per request (transaction).
  * Idempotent: insert ApplyLog first; duplicate -> skip row.
  */
-export async function veriUygula(safeTable, rows, batchId = null) {
+export async function applyChanges(safeTable, rows, batchId = null) {
   const pool = await getConnectionPool();
 
 
@@ -89,7 +89,7 @@ WHEN NOT MATCHED THEN
 /**
  * Batch bazlı temizlik: belirli BatchId'ye ait ApplyLog kayıtlarını sil.
  */
-export async function temizleApplyLogByBatch(batchId) {
+export async function deleteApplyLogByBatchId(batchId) {
   const pool = await getConnectionPool();
  
 

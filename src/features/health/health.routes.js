@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { apiDurumuGetir } from './health.controller.js';
+import { checkApiStatus } from './health.controller.js';
 
 const router = Router();
-router.get('/api-status', apiDurumuGetir);
+router.get('/api-status', checkApiStatus);
 export default router;
