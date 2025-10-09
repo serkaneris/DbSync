@@ -83,9 +83,24 @@ export const PORT = Number.isFinite(cfgPort)
 // DB bağlantısı ve shared secret'ı zorunlu kıl
 // Tercih: ENV öncelikli; istersen CONFIG içine de koyabilirsin (ör: CONFIG.db.conn)
 export const DB_CONN =
-  process.env.DB_CONN
-  ?? CONFIG?.db?.conn
-  ?? (() => { throw new Error('[config] DB_CONN bulunamadı (ENV veya CONFIG.db.conn).'); })();
+  (() => {
+    const conn =
+      process.env.DB_CONN
+      ?? CONFIG?.db?.conn
+      ?? (() => { throw new Error('[config] DB_CONN bulunamadı (ENV veya CONFIG.db.conn).'); })();
+
+    // Eğer bağlantı bir nesneyse, timeout ekle
+    if (typeof conn === 'object') {
+      return {
+        ...conn,
+        requestTimeout: conn.requestTimeout || 120000,   // 120 saniye
+        connectionTimeout: conn.connectionTimeout || 30000,
+      };
+    }
+
+    // Eğer bağlantı string ise, değiştirmeden döndür
+    return conn;
+  })();
 
 export const SHARED_SECRET =
   process.env.SHARED_SECRET

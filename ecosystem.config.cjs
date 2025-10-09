@@ -6,6 +6,7 @@ module.exports = {
       script: "./index.js",
       cwd: ".",
       // Windows yollarını ters-eksiyle yazabilirsiniz; node hepsini anlar.
+      node_args: "--max-old-space-size=8192",
       env: {
         NODE_ENV: "production",
         // A için .env ve config:
@@ -19,6 +20,7 @@ module.exports = {
       node_args: "--inspect=9229",
       watch: false,
       cwd: ".",
+      node_args: "--max-old-space-size=8192",
       env: {
         NODE_ENV: "development",
         // B için .env ve config:

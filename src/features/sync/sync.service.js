@@ -3,30 +3,41 @@ import { havuzaBaglan, sql } from '../../core/db/mssql.js';
 import { mergeSorgusuOlustur, paramBagla } from './sync.helpers.js';
 
 /**
- * ApplyLog: idempotency log (TableName, RowId, ChangeVersion) UNIQUE
+ * Ensure ApplyLog exists and has BatchId column for per-batch cleanup.
  */
 async function ensureApplyLog(pool) {
-  const ddl = `
+  const ddlTable = `
 IF NOT EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ApplyLog]') AND type in (N'U'))
 BEGIN
   CREATE TABLE [dbo].[ApplyLog](
     [TableName] sysname NOT NULL,
     [RowId] uniqueidentifier NOT NULL,
     [ChangeVersion] bigint NOT NULL,
+    [BatchId] uniqueidentifier NULL,
     [AppliedAt] datetime2(3) NOT NULL CONSTRAINT DF_ApplyLog_AppliedAt DEFAULT (sysdatetime()),
     CONSTRAINT PK_ApplyLog PRIMARY KEY CLUSTERED (TableName, RowId, ChangeVersion)
   );
 END;`;
-  await pool.request().query(ddl);
+
+  const ddlColumn = `
+IF COL_LENGTH('dbo.ApplyLog', 'BatchId') IS NULL
+BEGIN
+  ALTER TABLE dbo.ApplyLog ADD BatchId uniqueidentifier NULL;
+END
+`;
+
+  await pool.request().query(ddlTable);
+  await pool.request().query(ddlColumn);
 }
 
 /**
- * safeTable already validated against CONFIG.flows (controller side).
+ * safeTable: validated table name ('dbo.Table')
  * rows: array of objects with at least { Ver, Op, Id, ... }
- * Atomic per call (transaction per part/segment).
- * Idempotent: insert into ApplyLog first; on duplicate (2627/2601) skip row.
+ * batchId: uniqueidentifier of current sync batch (can be null)
+ * Atomic per request (transaction).
+ * Idempotent: insert ApplyLog first; duplicate -> skip row.
  */
-export async function veriUygula(safeTable, rows) {
+export async function veriUygula(safeTable, rows, batchId = null) {
   const pool = await havuzaBaglan();
   await ensureApplyLog(pool);
 
@@ -42,27 +53,28 @@ export async function veriUygula(safeTable, rows) {
       if (!Id) throw new Error('row without Id');
       if (Ver == null) throw new Error('row without Ver');
 
-      // 1) Idempotency: try to mark as applied
+      // 1) Idempotency marker
       const ins = new sql.Request(tx);
       ins.input('TableName', sql.NVarChar(128), String(safeTable));
       ins.input('RowId', sql.UniqueIdentifier, Id);
       ins.input('ChangeVersion', sql.BigInt, Ver);
+      ins.input('BatchId', sql.UniqueIdentifier, batchId);
 
       try {
         await ins.query(`
-INSERT INTO dbo.ApplyLog(TableName, RowId, ChangeVersion) VALUES (@TableName, @RowId, @ChangeVersion);
+INSERT INTO dbo.ApplyLog(TableName, RowId, ChangeVersion, BatchId)
+VALUES (@TableName, @RowId, @ChangeVersion, @BatchId);
 `);
       } catch (e) {
-        // 2627 (PK violation) or 2601 (unique index) => already applied
         const code = e && e.number;
         if (code === 2627 || code === 2601) {
-          // SKIP this row: it's already applied in a prior attempt/segment
+          // already applied previously
           continue;
         }
         throw e;
       }
 
-      // 2) Apply data mutation
+      // 2) Apply mutation
       if (Op === 'D') {
         const delReq = new sql.Request(tx);
         delReq.input('Id', sql.UniqueIdentifier, Id);
@@ -98,4 +110,48 @@ WHEN NOT MATCHED THEN
     await tx.rollback();
     throw err;
   }
+}
+
+/**
+ * Batch bazlı temizlik: belirli BatchId'ye ait ApplyLog kayıtlarını sil.
+ */
+export async function temizleApplyLogByBatch(batchId) {
+  const pool = await havuzaBaglan();
+  await ensureApplyLog(pool);
+
+  const start = Date.now();
+  let totalDeleted = 0;
+
+  // Her turda en fazla 20.000 kayıt sil (DB'ne göre 10k–100k arası deneyebilirsin)
+  const BATCH_SIZE = 20000;
+  // Tek fonksiyon çağrısında toplam 12 sn bütçe tut (15 sn sınırına güvenli mesafe)
+  const TIME_BUDGET_MS = 12000;
+
+  while (true) {
+    const req = pool.request();
+    req.timeout = 14000; // her round için 14 sn (15 sn altı)
+
+    const r = await req
+      .input('BatchId', sql.UniqueIdentifier, batchId)
+      .query(`
+        SET DEADLOCK_PRIORITY LOW;
+        -- küçük kilitlerle ilerle
+        DELETE TOP (${BATCH_SIZE})
+        FROM dbo.ApplyLog WITH (ROWLOCK)
+        WHERE BatchId = @BatchId;
+
+        SELECT @@ROWCOUNT AS Deleted;
+      `);
+
+    const del = Number(r.recordset?.[0]?.Deleted || 0);
+    totalDeleted += del;
+
+    // Silinecek kalmadı → çık
+    if (del === 0) break;
+
+    // 12 sn’lik bütçeyi aştıysak çık (kalanını bir sonraki çağrıda temizleriz)
+    if ((Date.now() - start) > TIME_BUDGET_MS) break;
+  }
+
+  return totalDeleted; // kaç kayıt silindiğini döndür
 }

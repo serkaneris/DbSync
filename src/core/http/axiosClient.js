@@ -8,7 +8,7 @@ import { gzipSync } from 'zlib';
  */
 export const http = axios.create({
   headers: { 'content-type': 'application/json' },
-  timeout: 30000, // varsayılanı biraz yükselttik
+  timeout: 60000, // varsayılanı biraz yükselttik
   maxBodyLength: Infinity,
   maxContentLength: Infinity,
 });
@@ -18,7 +18,7 @@ export const http = axios.create({
  * - İstek gövdesini manuel olarak gzip'ler ve uygun başlıklarla gönderir.
  * - Yanıt JSON ise parse edilir; değilse raw text dönebilir.
  */
-export async function postJsonGzip(url, bodyObj, { timeoutMs = 30000, auth = SHARED_SECRET } = {}) {
+export async function postJsonGzip(url, bodyObj, { timeoutMs = 60000, auth = SHARED_SECRET } = {}) {
   const json = JSON.stringify(bodyObj);
   const gz = gzipSync(json);
 

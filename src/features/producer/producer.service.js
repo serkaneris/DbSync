@@ -2,6 +2,7 @@
 import { sql, havuzaBaglan } from '../../core/db/mssql.js';
 import { CONFIG } from '../../core/config.js';
 import { sendBatchParts } from '../../core/http/axiosClient.js';
+import { postJsonGzip } from '../../core/http/axiosClient.js';
 import crypto from 'crypto';
 
 /* ======================
@@ -83,53 +84,91 @@ function chunkRows(rows, { maxRows = 4000, maxBytes = 3_500_000 } = {}) {
   return parts;
 }
 
+// applyLogClean'i tamamen bitirene kadar tekrar tekrar çağırır
+async function applyLogCleanFully(remoteBase, batchId, {
+  timeoutMs = 30000,     // tek çağrı için bekleme süresi
+  sleepMs = 200,         // turlar arasında küçük bekleme (DB'yi rahatlatır)
+  maxRounds = 500        // güvenlik: sonsuz döngü olmasın
+} = {}) {
+  let total = 0;
+  for (let round = 1; round <= maxRounds; round++) {
+    const r = await postJsonGzip(`${remoteBase}/applyLogClean`, { batchId }, { timeoutMs });
+
+    if (!r?.ok) {
+      throw new Error(`applyLogClean NACK/ERROR: ${JSON.stringify(r)}`);
+    }
+
+    const del = Number(r.deleted || 0);
+    total += del;
+
+    // Sunucu bu turda hiç satır silmediyse, artık bitti demektir.
+    if (del === 0) {
+      return total;
+    }
+
+    // İsteğe bağlı: çok hızlı üst üste vurmayalım
+    if (sleepMs > 0) {
+      await new Promise(res => setTimeout(res, sleepMs));
+    }
+  }
+  // güvenlik amaçlı: çok fazla tur atılırsa hata ver
+  throw new Error('applyLogClean loops exceeded maxRounds; check server cleanup batching.');
+}
+
 /* ======================
    Ana akış (axiosClient yardımcılarını kullanır)
    ====================== */
 export async function yerelDegisiklikleriGonder(table, nodeName) {
   const pool = await havuzaBaglan();
-  const last = await sonSenkSurumunuAl(table);
-  const current = await gecerliCTSurumunuAl();
+  const fromVersion = await sonSenkSurumunuAl(table);
+  const toVersion   = await gecerliCTSurumunuAl();
 
-  // Pencere sabit kalsın (resume için)
-  const fromVersion = last;
-  const toVersion = current;
-
+  // Değişiklikleri çek
   const rs = await pool.request()
     .input('last', sql.BigInt, fromVersion)
     .query(degisiklikSorgusuOlustur(table));
 
   const rows = rs.recordset;
   if (rows.length === 0) {
+    // Hiç değişiklik yoksa versiyonu gönül rahatlığıyla ilerlet
     await sonSenkSurumunuGuncelle(table, toVersion);
-    return { sent: 0, last: fromVersion, current: toVersion, chunks: 0 };
+    return { sent: 0, last: fromVersion, current: toVersion };
   }
 
-  // Parçala (part)
-  const parts = chunkRows(rows, { maxRows: 4000, maxBytes: 3_500_000 });
-  const url = `${CONFIG.remoteApiBase}/veri-al`;
-
-  // Batch meta
+  // Gönderim/temizlik için meta
+  const parts   = chunkRows(rows, { maxRows: 4000, maxBytes: 3_500_000 });
+  const url     = `${CONFIG.remoteApiBase}/veri-al`;
   const batchId = crypto.randomUUID();
-  const baseMeta = {
-    batchId,
-    table,
-    sourceDb: nodeName,
-    fromVersion,
-    toVersion
-  };
+  const baseMeta = { batchId, table, sourceDb: nodeName, fromVersion, toVersion };
 
-  // Parçaları sırayla gönder (sendBatchParts -> her part gerekirse segmentlere bölünür)
-  const { totalSent, partCount } = await sendBatchParts({ url, baseMeta, parts });
+  try {
+    // 1) Gönderim (send → gerekirse segment, gzip, retry)
+    const { totalSent, partCount } = await sendBatchParts({ url, baseMeta, parts });
 
-  // Tüm part/segment başarılı ise ilerlemeyi güncelle
-  await sonSenkSurumunuGuncelle(table, toVersion);
+    // 2) Temizlik (applyLog’u bitene kadar parça parça temizle)
+    // const totalCleaned = await applyLogCleanFully(CONFIG.remoteApiBase, batchId, {
+    //   timeoutMs: 60000,   // istersen 30-120 sn arası ayarlayabilirsin
+    //   sleepMs: 200,
+    //   maxRounds: 1000
+    // });
 
-  return {
-    sent: totalSent,
-    last: fromVersion,
-    current: toVersion,
-    batchId,
-    chunks: partCount
-  };
+    // 3) Hepsi ok → versiyonu ilerlet
+    await sonSenkSurumunuGuncelle(table, toVersion);
+
+    return {
+      sent: totalSent,
+      last: fromVersion,
+      current: toVersion,
+      batchId,
+      chunks: partCount
+    };
+
+  } catch (err) {
+    // ÖNEMLİ: Hata varsa versiyonu İLERLETME!
+    console.error('[yerelDegisiklikleriGonder] hata:', {
+      table, batchId, fromVersion, toVersion, message: err?.message
+    });
+    // üst kata fırlat ki çağıran katman (job/cron) yeniden denesin
+    throw err;
+  }
 }
