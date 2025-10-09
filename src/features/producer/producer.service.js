@@ -146,12 +146,14 @@ export async function yerelDegisiklikleriGonder(table, nodeName) {
     const { totalSent, partCount } = await sendBatchParts({ url, baseMeta, parts });
 
     // 2) Temizlik (applyLog’u bitene kadar parça parça temizle)
-    // const totalCleaned = await applyLogCleanFully(CONFIG.remoteApiBase, batchId, {
-    //   timeoutMs: 60000,   // istersen 30-120 sn arası ayarlayabilirsin
-    //   sleepMs: 200,
-    //   maxRounds: 1000
-    // });
-
+    const totalCleaned = await applyLogCleanFully(CONFIG.remoteApiBase, batchId, {
+      timeoutMs: 60000,   // istersen 30-120 sn arası ayarlayabilirsin
+      sleepMs: 200,
+      maxRounds: 1000
+    });
+    
+    console.log("\x1b[33m%s\x1b[0m ","🟡 ApplyLog Cleaned:", totalCleaned);
+    
     // 3) Hepsi ok → versiyonu ilerlet
     await sonSenkSurumunuGuncelle(table, toVersion);
 
@@ -160,7 +162,8 @@ export async function yerelDegisiklikleriGonder(table, nodeName) {
       last: fromVersion,
       current: toVersion,
       batchId,
-      chunks: partCount
+      chunks: partCount,
+      totalCleaned
     };
 
   } catch (err) {

@@ -2,33 +2,7 @@
 import { havuzaBaglan, sql } from '../../core/db/mssql.js';
 import { mergeSorgusuOlustur, paramBagla } from './sync.helpers.js';
 
-/**
- * Ensure ApplyLog exists and has BatchId column for per-batch cleanup.
- */
-async function ensureApplyLog(pool) {
-  const ddlTable = `
-IF NOT EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ApplyLog]') AND type in (N'U'))
-BEGIN
-  CREATE TABLE [dbo].[ApplyLog](
-    [TableName] sysname NOT NULL,
-    [RowId] uniqueidentifier NOT NULL,
-    [ChangeVersion] bigint NOT NULL,
-    [BatchId] uniqueidentifier NULL,
-    [AppliedAt] datetime2(3) NOT NULL CONSTRAINT DF_ApplyLog_AppliedAt DEFAULT (sysdatetime()),
-    CONSTRAINT PK_ApplyLog PRIMARY KEY CLUSTERED (TableName, RowId, ChangeVersion)
-  );
-END;`;
 
-  const ddlColumn = `
-IF COL_LENGTH('dbo.ApplyLog', 'BatchId') IS NULL
-BEGIN
-  ALTER TABLE dbo.ApplyLog ADD BatchId uniqueidentifier NULL;
-END
-`;
-
-  await pool.request().query(ddlTable);
-  await pool.request().query(ddlColumn);
-}
 
 /**
  * safeTable: validated table name ('dbo.Table')
@@ -39,7 +13,7 @@ END
  */
 export async function veriUygula(safeTable, rows, batchId = null) {
   const pool = await havuzaBaglan();
-  await ensureApplyLog(pool);
+
 
   const tx = new sql.Transaction(pool);
   await tx.begin();
@@ -83,7 +57,7 @@ VALUES (@TableName, @RowId, @ChangeVersion, @BatchId);
         continue;
       }
 
-      const metaKeys = new Set(['Ver','Op']);
+      const metaKeys = new Set(['Ver', 'Op']);
       const uniqKeys = Array.from(new Set(Object.keys(rawRow).filter(k => !metaKeys.has(k))));
 
       const reqMerge = new sql.Request(tx);
@@ -117,7 +91,7 @@ WHEN NOT MATCHED THEN
  */
 export async function temizleApplyLogByBatch(batchId) {
   const pool = await havuzaBaglan();
-  await ensureApplyLog(pool);
+ 
 
   const start = Date.now();
   let totalDeleted = 0;

@@ -66,3 +66,67 @@ export async function syncStateTablosunuBaslat() {
     }
   }
 }
+
+// 1) CleanQueue tablosu
+export async function ensureCleanQueue() {
+  const pool = await havuzaBaglan();
+  await pool.request().query(`
+IF NOT EXISTS (
+  SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'dbo.CleanQueue') AND type = 'U'
+)
+BEGIN
+  CREATE TABLE dbo.CleanQueue(
+    Id           int IDENTITY(1,1) PRIMARY KEY,
+    BatchId      uniqueidentifier NOT NULL,
+    Status       tinyint NOT NULL CONSTRAINT DF_CleanQueue_Status DEFAULT(0), -- 0=pending,1=running,2=done,3=error
+    Attempts     int NOT NULL CONSTRAINT DF_CleanQueue_Attempts DEFAULT(0),
+    RequestedAt  datetime2(3) NOT NULL CONSTRAINT DF_CleanQueue_RequestedAt DEFAULT(sysdatetime()),
+    StartedAt    datetime2(3) NULL,
+    FinishedAt   datetime2(3) NULL
+  );
+END;
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_CleanQueue_Status' AND object_id = OBJECT_ID('dbo.CleanQueue'))
+BEGIN
+  CREATE NONCLUSTERED INDEX IX_CleanQueue_Status ON dbo.CleanQueue(Status, Id);
+END;
+  `);
+}
+
+
+/**
+ * Ensure ApplyLog exists and has BatchId column for per-batch cleanup.
+ */
+export async function ensureApplyLog() {
+  const pool = await havuzaBaglan();
+  const ddlTable = `
+IF NOT EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ApplyLog]') AND type in (N'U'))
+BEGIN
+  CREATE TABLE [dbo].[ApplyLog](
+    [TableName] sysname NOT NULL,
+    [RowId] uniqueidentifier NOT NULL,
+    [ChangeVersion] bigint NOT NULL,
+    [BatchId] uniqueidentifier NULL,
+    [AppliedAt] datetime2(3) NOT NULL CONSTRAINT DF_ApplyLog_AppliedAt DEFAULT (sysdatetime()),
+    CONSTRAINT PK_ApplyLog PRIMARY KEY CLUSTERED (TableName, RowId, ChangeVersion)
+  );
+END;`;
+
+  const ddlColumn = `
+IF COL_LENGTH('dbo.ApplyLog', 'BatchId') IS NULL
+BEGIN
+  ALTER TABLE dbo.ApplyLog ADD BatchId uniqueidentifier NULL;
+END
+`;
+
+  const ddlIndex = `
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ApplyLog_BatchId' AND object_id = OBJECT_ID('dbo.ApplyLog'))
+BEGIN
+  CREATE INDEX IX_ApplyLog_BatchId ON dbo.ApplyLog(BatchId);
+END
+`;
+
+  await pool.request().query(ddlTable);
+  await pool.request().query(ddlColumn);
+  await pool.request().query(ddlIndex);
+}
+
