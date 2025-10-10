@@ -6,8 +6,16 @@ import * as dotenv from 'dotenv';
 let __CONFIG_CACHE = null;
 let __ENV_LOADED = false;
 
+
+function appBaseDir() {
+  // Eğer EXE olarak çalışıyorsa
+  if (process.pkg) return path.dirname(process.execPath);
+  // normal node.js çalıştırmasında
+  return process.cwd();
+}
+
 function ensureFileExists(p, varNameForMsg) {
-  const abs = path.isAbsolute(p) ? p : path.resolve(process.cwd(), p);
+  const abs = path.isAbsolute(p) ? p : path.resolve(appBaseDir(), p);
   if (!fs.existsSync(abs)) {
     throw new Error(`[config] ${varNameForMsg} dosyası bulunamadı: ${abs}`);
   }
