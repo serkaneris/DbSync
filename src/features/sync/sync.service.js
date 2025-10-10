@@ -1,6 +1,6 @@
 
 import { getConnectionPool, sql } from '../../core/db/mssql.js';
-import { mergeSorgusuOlustur } from './sync.helpers.js';
+import { createMergeQuery } from './sync.helpers.js';
 import { getTableSchema } from '../../core/db/schema.js';
 import { bindParamsBySchema } from '../../core/db/paramBind.js';
 
@@ -64,9 +64,8 @@ VALUES (@TableName, @RowId, @ChangeVersion, @BatchId);
 
       const reqMerge = new sql.Request(tx);
       bindParamsBySchema(reqMerge, sql, schema, rawRow, uniqKeys);
-      //paramBagla(reqMerge, uniqKeys, rawRow, sql); // eski, tip güvenli değil - iptal edildi.
-
-      const { cols, srcCols, setCols, valuesCols } = mergeSorgusuOlustur(uniqKeys);
+      
+      const { cols, srcCols, setCols, valuesCols } = createMergeQuery(uniqKeys);
       const mergeSql = `
 MERGE ${safeTable} AS t
 USING (SELECT ${srcCols}) AS s

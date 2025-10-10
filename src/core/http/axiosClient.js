@@ -75,7 +75,7 @@ export async function postJsonGzip(url, bodyObj, { timeoutMs = 60000, auth = SHA
  * Basit JSON POST (geri uyumluluk)
  * - Gzip kullanmaz; küçük yükler için uygundur.
  */
-export async function jsonGonder(url, body) {
+export async function postJson(url, body) {
   try {
     const res = await http.post(url, body, { headers: { 'x-auth': SHARED_SECRET || '' } });
     return res.data;

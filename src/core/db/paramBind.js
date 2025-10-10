@@ -30,7 +30,7 @@ export function bindParamsBySchema(req, sql, schemaMap, row, fields) {
       req.input(k, mapSqlType(sql, col), null);
       continue;
     }
-
+    
     switch (col.type) {
       case 'bit':
         req.input(k, sql.Bit, Boolean(v));

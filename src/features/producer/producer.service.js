@@ -122,6 +122,8 @@ export async function pushLocalChanges(table, nodeName) {
   const pool = await getConnectionPool();
   const fromVersion = await sonSenkSurumunuAl(table);
   const toVersion   = await gecerliCTSurumunuAl();
+  console.log('🟡 db version',toVersion)
+   console.log('🟡 curent version',fromVersion)
 
   // Değişiklikleri çek
   const rs = await pool.request()
@@ -152,7 +154,7 @@ export async function pushLocalChanges(table, nodeName) {
       maxRounds: 1000
     });
     
-    console.log("\x1b[33m%s\x1b[0m ","🟡 ApplyLog Cleaned:", totalCleaned);
+     console.log("\x1b[33m%s\x1b[0m ","🟡 ApplyLog Cleaned:", totalCleaned);
     
     // 3) Hepsi ok → versiyonu ilerlet
     await sonSenkSurumunuGuncelle(table, toVersion);
