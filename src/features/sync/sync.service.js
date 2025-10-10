@@ -1,6 +1,8 @@
 
 import { getConnectionPool, sql } from '../../core/db/mssql.js';
-import { mergeSorgusuOlustur, paramBagla } from './sync.helpers.js';
+import { mergeSorgusuOlustur } from './sync.helpers.js';
+import { getTableSchema } from '../../core/db/schema.js';
+import { bindParamsBySchema } from '../../core/db/paramBind.js';
 
 
 
@@ -13,7 +15,7 @@ import { mergeSorgusuOlustur, paramBagla } from './sync.helpers.js';
  */
 export async function applyChanges(safeTable, rows, batchId = null) {
   const pool = await getConnectionPool();
-
+  const schema = await getTableSchema(pool, safeTable);
 
   const tx = new sql.Transaction(pool);
   await tx.begin();
@@ -61,7 +63,8 @@ VALUES (@TableName, @RowId, @ChangeVersion, @BatchId);
       const uniqKeys = Array.from(new Set(Object.keys(rawRow).filter(k => !metaKeys.has(k))));
 
       const reqMerge = new sql.Request(tx);
-      paramBagla(reqMerge, uniqKeys, rawRow, sql);
+      bindParamsBySchema(reqMerge, sql, schema, rawRow, uniqKeys);
+      //paramBagla(reqMerge, uniqKeys, rawRow, sql); // eski, tip güvenli değil - iptal edildi.
 
       const { cols, srcCols, setCols, valuesCols } = mergeSorgusuOlustur(uniqKeys);
       const mergeSql = `

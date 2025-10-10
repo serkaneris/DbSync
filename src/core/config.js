@@ -80,7 +80,7 @@ export function reloadConfig() {
 
 // Geriye dönük uyum alanı
 export const CONFIG = getConfig();
-console.log(CONFIG)
+
 // PORT öncelik: CONFIG.port → process.env.PORT → 3000
 // (CONFIG.port sayısal değilse Number(...) NaN olabilir; bu yüzden fallback sırası korunuyor)
 const cfgPort = Number(CONFIG.port);
