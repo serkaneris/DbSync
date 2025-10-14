@@ -9,10 +9,11 @@ import {
 import { IS_ENSURE_TABLES } from '../../core/config.js';
 
 export async function prepareApplicationStartup() {
+  console.log('[IS_ENSURE_TABLES] ',IS_ENSURE_TABLES);
   if (IS_ENSURE_TABLES) {
 
-    // await ensureDb();
-    // console.log('[DDL] creating table Database');
+    await ensureDb();
+    console.log('[DDL] creating table Database');
     // 1️⃣ Ana tablo kontrolleri
     await ensureDocuments();
     console.log('[DDL] creating table Documents');

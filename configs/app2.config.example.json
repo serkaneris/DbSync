@@ -3,7 +3,8 @@
   "nodeName": "NODE_Y",
   "remoteApiBase": "http://localhost:6001",
   "apply": true,
-  "pollMs": 5000,
+  "pollMs": 10000,
+  "isEnsureTables": true,
   "enableChangeTracking": {
     "enable": true,
     "retentionDays": 7,
@@ -12,11 +13,10 @@
       "dbo.DocumentDetailCosts"
     ]
   },
+  "_comment": "flows kısmında karşıya gönderilecek tablolar belirtilir. Birden fazla tablo eklenebilir.",
   "flows": [
     {
       "table": "dbo.DocumentDetailCosts"
     }
   ]
 }
-
-// Not: flows kısmında karşıya gönderilecek tablolar belirtilir. Birden fazla tablo eklenebilir.

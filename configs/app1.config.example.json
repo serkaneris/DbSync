@@ -3,20 +3,72 @@
   "nodeName": "NODE_X",
   "remoteApiBase": "http://localhost:6002",
   "apply": true,
-  "pollMs": 5000,
+  "pollMs": 10000,
+  "isEnsureTables": false,
   "enableChangeTracking": {
     "enable": true,
     "retentionDays": 7,
     "trackColumnsUpdated": true,
     "tables": [
-      "dbo.Documents"
+      "dbo.Documents",
+      "dbo.DocumentDetails",
+      "dbo.Businesses",
+      "dbo.CalculateCostOperations",
+      "dbo.ExpenseDiscountDetails",
+      "dbo.Inventories",
+      "dbo.InventoryRemainders",
+      "dbo.OperationClaims",
+      "dbo.ProductionInOuts",
+      "dbo.Products",
+      "dbo.UnitCostByDates",
+      "dbo.UserOperationClaims",
+      "dbo.Users",
+      "dbo.UserTableLocks"
     ]
   },
+  "_comment": "flows kısmında karşıya gönderilecek tablolar belirtilir. Birden fazla tablo eklenebilir.",
   "flows": [
     {
       "table": "dbo.Documents"
+    },
+    {
+      "table": "dbo.DocumentDetails"
+    },
+    {
+      "table": "dbo.Businesses"
+    },
+    {
+      "table": "dbo.CalculateCostOperations"
+    },
+    {
+      "table": "dbo.ExpenseDiscountDetails"
+    },
+    {
+      "table": "dbo.Inventories"
+    },
+    {
+      "table": "dbo.InventoryRemainders"
+    },
+    {
+      "table": "dbo.OperationClaims"
+    },
+    {
+      "table": "dbo.ProductionInOuts"
+    },
+    {
+      "table": "dbo.Products"
+    },
+    {
+      "table": "dbo.UnitCostByDates"
+    },
+    {
+      "table": "dbo.UserOperationClaims"
+    },
+    {
+      "table": "dbo.Users"
+    },
+    {
+      "table": "dbo.UserTableLocks"
     }
   ]
 }
-
-// Not: flows kısmında karşıya gönderilecek tablolar belirtilir. Birden fazla tablo eklenebilir.

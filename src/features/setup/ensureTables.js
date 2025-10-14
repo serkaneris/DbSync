@@ -1,38 +1,50 @@
 import { getConnectionPool, sql } from '../../core/db/mssql.js';
-import { CONFIG} from '../../core/config.js';
+import { CONFIG,DB_CONN } from '../../core/config.js';
+
+
 
 export async function ensureDb() {
-  const pool = await getConnectionPool();
+    console.log('Ensuring database start...');
+    const pool = await getConnectionPool(true);
 
-  const exists = await pool.request().query(`
-    SELECT DB_ID(N'CostDb') AS DbId
-  `);
-  if (exists.recordset.length === 0) {
-    const createDbQuery = `
-   CREATE DATABASE [CostDb]
-      `;
+    const match = /Database=([^;]+)/i.exec(DB_CONN);
+    const dbName = match ? match[1] : null;
 
-    
+    if (!dbName) {
+        throw new Error("Connection string içinde 'Database=' kısmı bulunamadı.");
+    }
+
+    const checkQuery = `
+      IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = N'${dbName}')
+      BEGIN
+          PRINT 'Database ${dbName} oluşturuluyor...';
+          CREATE DATABASE [${dbName}];
+      END
+    `;
+
+
+
+
     const request = pool.request();
-    await request.query(createDbQuery);
-  }
+    await request.query(checkQuery);
 }
+
 
 /**
  * Gerekli Ana tabloların Kontrolü ve Oluşturulması
  */
 export async function ensureDocuments() {
-  const pool = await getConnectionPool();
+    const pool = await getConnectionPool();
 
-  // tablo var mı?
-  const exists = await pool.request().query(`
+    // tablo var mı?
+    const exists = await pool.request().query(`
     SELECT 1
     FROM sys.objects
     WHERE object_id = OBJECT_ID('dbo.Documents') AND type = 'U';
   `);
 
-  if (exists.recordset.length === 0) {
-    const createTableQuery = `
+    if (exists.recordset.length === 0) {
+        const createTableQuery = `
       CREATE TABLE [dbo].[Documents](
 	[Id] [uniqueidentifier] NOT NULL,
 	[DocumentTypeId] [uniqueidentifier] NOT NULL,
@@ -122,34 +134,34 @@ export async function ensureDocuments() {
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
     `;
 
-    const alterIdDefault = `
+        const alterIdDefault = `
       ALTER TABLE [dbo].[Documents] ADD  CONSTRAINT [DF__Documents__Id__0EF836A4]  DEFAULT (newid()) FOR [Id]
     `;
 
-    const alterIsRetailDefault = `
+        const alterIsRetailDefault = `
       ALTER TABLE [dbo].[Documents]
       ADD CONSTRAINT [DF__Documents__IsRet__5DEAEAF5] DEFAULT (CONVERT([bit], (1))) FOR [IsRetail];
     `;
 
-    const request = pool.request();
-    await request.query(createTableQuery);
-    await request.query(alterIdDefault);
-    await request.query(alterIsRetailDefault);
-  }
+        const request = pool.request();
+        await request.query(createTableQuery);
+        await request.query(alterIdDefault);
+        await request.query(alterIsRetailDefault);
+    }
 }
 
 export async function ensureDocumentDetails() {
-  const pool = await getConnectionPool();
+    const pool = await getConnectionPool();
 
-  // tablo var mı?
-  const exists = await pool.request().query(`
+    // tablo var mı?
+    const exists = await pool.request().query(`
     SELECT 1
     FROM sys.objects
     WHERE object_id = OBJECT_ID('dbo.DocumentDetails') AND type = 'U';
   `);
 
-  if (exists.recordset.length === 0) {
-    const createTableQuery = `
+    if (exists.recordset.length === 0) {
+        const createTableQuery = `
       CREATE TABLE [dbo].[DocumentDetails](
 	[Id] [uniqueidentifier] NOT NULL,
 	[VoucherId] [uniqueidentifier] NULL,
@@ -245,29 +257,29 @@ export async function ensureDocumentDetails() {
 ) ON [PRIMARY]
     `;
 
-    // Kaynak betikteki gibi varsayılan kısıt adı belirtilmemiş — aynı şekilde ekliyoruz
-    const alterIdDefault = `
+        // Kaynak betikteki gibi varsayılan kısıt adı belirtilmemiş — aynı şekilde ekliyoruz
+        const alterIdDefault = `
       ALTER TABLE [dbo].[DocumentDetails] ADD  DEFAULT (newid()) FOR [Id]
     `;
 
-    const request = pool.request();
-    await request.query(createTableQuery);
-    await request.query(alterIdDefault);
-  }
+        const request = pool.request();
+        await request.query(createTableQuery);
+        await request.query(alterIdDefault);
+    }
 }
 
 export async function ensureDocumentDetailCosts() {
-  const pool = await getConnectionPool();
+    const pool = await getConnectionPool();
 
-  // tablo var mı?
-  const exists = await pool.request().query(`
+    // tablo var mı?
+    const exists = await pool.request().query(`
     SELECT 1
     FROM sys.objects
     WHERE object_id = OBJECT_ID('dbo.DocumentDetailCosts') AND type = 'U';
   `);
 
-  if (exists.recordset.length === 0) {
-    const createTableQuery = `
+    if (exists.recordset.length === 0) {
+        const createTableQuery = `
      CREATE TABLE [dbo].[DocumentDetailCosts](
 	[Id] [uniqueidentifier] NOT NULL,
 	[CostAmount] [decimal](28, 6) NULL,
@@ -290,28 +302,28 @@ export async function ensureDocumentDetailCosts() {
 ) ON [PRIMARY]
     `;
 
-    const alterIdDefault = `
+        const alterIdDefault = `
       ALTER TABLE [dbo].[DocumentDetailCosts] ADD  DEFAULT (newid()) FOR [Id]
     `;
 
-    const request = pool.request();
-    await request.query(createTableQuery);
-    await request.query(alterIdDefault);
-  }
+        const request = pool.request();
+        await request.query(createTableQuery);
+        await request.query(alterIdDefault);
+    }
 }
 
 export async function ensureBusinesses() {
-  const pool = await getConnectionPool();
+    const pool = await getConnectionPool();
 
-  // tablo var mı?
-  const exists = await pool.request().query(`
+    // tablo var mı?
+    const exists = await pool.request().query(`
     SELECT 1
     FROM sys.objects
     WHERE object_id = OBJECT_ID('dbo.Businesses') AND type = 'U';
   `);
 
-  if (exists.recordset.length === 0) {
-    const createTableQuery = `
+    if (exists.recordset.length === 0) {
+        const createTableQuery = `
       CREATE TABLE [dbo].[Businesses](
 	[Id] [uniqueidentifier] NOT NULL,
 	[Name] [nvarchar](500) NULL,
@@ -376,47 +388,47 @@ export async function ensureBusinesses() {
 ) ON [PRIMARY]
     `;
 
-    const alterIdDefault = `
+        const alterIdDefault = `
       ALTER TABLE [dbo].[Businesses]
       ADD DEFAULT (newid()) FOR [Id]
     `;
 
-    const alterDefaultCurrencyUnitId = `
+        const alterDefaultCurrencyUnitId = `
       ALTER TABLE [dbo].[Businesses]
       ADD DEFAULT ('00000000-0000-0000-0000-000000000000') FOR [DefaultCurrencyUnitId]
     `;
 
-    const alterIsCustomerDependent = `
+        const alterIsCustomerDependent = `
       ALTER TABLE [dbo].[Businesses]
       ADD DEFAULT (CONVERT([bit], (1))) FOR [IsCustomerDependent]
     `;
 
-    const alterIsProductDependent = `
+        const alterIsProductDependent = `
       ALTER TABLE [dbo].[Businesses]
       ADD DEFAULT (CONVERT([bit], (1))) FOR [IsProductDependent]
     `;
 
-    const request = pool.request();
-    await request.query(createTableQuery);
-    await request.query(alterIdDefault);
-    await request.query(alterDefaultCurrencyUnitId);
-    await request.query(alterIsCustomerDependent);
-    await request.query(alterIsProductDependent);
-  }
+        const request = pool.request();
+        await request.query(createTableQuery);
+        await request.query(alterIdDefault);
+        await request.query(alterDefaultCurrencyUnitId);
+        await request.query(alterIsCustomerDependent);
+        await request.query(alterIsProductDependent);
+    }
 }
 
 export async function ensureCalculateCostOperations() {
-  const pool = await getConnectionPool();
+    const pool = await getConnectionPool();
 
-  // tablo var mı?
-  const exists = await pool.request().query(`
+    // tablo var mı?
+    const exists = await pool.request().query(`
     SELECT 1
     FROM sys.objects
     WHERE object_id = OBJECT_ID('dbo.CalculateCostOperations') AND type = 'U';
   `);
 
-  if (exists.recordset.length === 0) {
-    const createTableQuery = `
+    if (exists.recordset.length === 0) {
+        const createTableQuery = `
       CREATE TABLE [dbo].[CalculateCostOperations](
 	[Id] [uniqueidentifier] NOT NULL,
 	[InventoryId] [uniqueidentifier] NOT NULL,
@@ -433,29 +445,29 @@ export async function ensureCalculateCostOperations() {
 ) ON [PRIMARY]
     `;
 
-    const alterIdDefault = `
+        const alterIdDefault = `
       ALTER TABLE [dbo].[CalculateCostOperations]
       ADD CONSTRAINT [DF__CalculateCos__Id__45A94D10] DEFAULT (newid()) FOR [Id]
     `;
 
-    const request = pool.request();
-    await request.query(createTableQuery);
-    await request.query(alterIdDefault);
-  }
+        const request = pool.request();
+        await request.query(createTableQuery);
+        await request.query(alterIdDefault);
+    }
 }
 
 export async function ensureExpenseDiscountDetails() {
-  const pool = await getConnectionPool();
+    const pool = await getConnectionPool();
 
-  // tablo var mı?
-  const exists = await pool.request().query(`
+    // tablo var mı?
+    const exists = await pool.request().query(`
     SELECT 1
     FROM sys.objects
     WHERE object_id = OBJECT_ID('dbo.ExpenseDiscountDetails') AND type = 'U';
   `);
 
-  if (exists.recordset.length === 0) {
-    const createTableQuery = `
+    if (exists.recordset.length === 0) {
+        const createTableQuery = `
       CREATE TABLE [dbo].[ExpenseDiscountDetails](
 	[Id] [uniqueidentifier] NOT NULL,
 	[DocumentDetailId] [uniqueidentifier] NULL,
@@ -475,29 +487,29 @@ export async function ensureExpenseDiscountDetails() {
 ) ON [PRIMARY]
     `;
 
-    const alterIdDefault = `
+        const alterIdDefault = `
       ALTER TABLE [dbo].[ExpenseDiscountDetails]
       ADD DEFAULT (newid()) FOR [Id]
     `;
 
-    const request = pool.request();
-    await request.query(createTableQuery);
-    await request.query(alterIdDefault);
-  }
+        const request = pool.request();
+        await request.query(createTableQuery);
+        await request.query(alterIdDefault);
+    }
 }
 
 export async function ensureInventories() {
-  const pool = await getConnectionPool();
+    const pool = await getConnectionPool();
 
-  // tablo var mı?
-  const exists = await pool.request().query(`
+    // tablo var mı?
+    const exists = await pool.request().query(`
     SELECT 1
     FROM sys.objects
     WHERE object_id = OBJECT_ID('dbo.Inventories') AND type = 'U';
   `);
 
-  if (exists.recordset.length === 0) {
-    const createTableQuery = `
+    if (exists.recordset.length === 0) {
+        const createTableQuery = `
       CREATE TABLE [dbo].[Inventories](
 	[Id] [uniqueidentifier] NOT NULL,
 	[ProductId] [uniqueidentifier] NOT NULL,
@@ -526,29 +538,29 @@ export async function ensureInventories() {
 ) ON [PRIMARY]
     `;
 
-    const alterIdDefault = `
+        const alterIdDefault = `
       ALTER TABLE [dbo].[Inventories]
       ADD DEFAULT (newid()) FOR [Id]
     `;
 
-    const request = pool.request();
-    await request.query(createTableQuery);
-    await request.query(alterIdDefault);
-  }
+        const request = pool.request();
+        await request.query(createTableQuery);
+        await request.query(alterIdDefault);
+    }
 }
 
 export async function ensureInventoryRemainders() {
-  const pool = await getConnectionPool();
+    const pool = await getConnectionPool();
 
-  // tablo var mı?
-  const exists = await pool.request().query(`
+    // tablo var mı?
+    const exists = await pool.request().query(`
     SELECT 1
     FROM sys.objects
     WHERE object_id = OBJECT_ID('dbo.InventoryRemainders') AND type = 'U';
   `);
 
-  if (exists.recordset.length === 0) {
-    const createTableQuery = `
+    if (exists.recordset.length === 0) {
+        const createTableQuery = `
       CREATE TABLE [dbo].[InventoryRemainders](
 	[Id] [uniqueidentifier] NOT NULL,
 	[ProductId] [uniqueidentifier] NULL,
@@ -572,29 +584,29 @@ export async function ensureInventoryRemainders() {
 ) ON [PRIMARY]
     `;
 
-    const alterIdDefault = `
+        const alterIdDefault = `
       ALTER TABLE [dbo].[InventoryRemainders]
       ADD DEFAULT (newid()) FOR [Id]
     `;
 
-    const request = pool.request();
-    await request.query(createTableQuery);
-    await request.query(alterIdDefault);
-  }
+        const request = pool.request();
+        await request.query(createTableQuery);
+        await request.query(alterIdDefault);
+    }
 }
 
 export async function ensureOperationClaims() {
-  const pool = await getConnectionPool();
+    const pool = await getConnectionPool();
 
-  // tablo var mı?
-  const exists = await pool.request().query(`
+    // tablo var mı?
+    const exists = await pool.request().query(`
     SELECT 1
     FROM sys.objects
     WHERE object_id = OBJECT_ID('dbo.OperationClaims') AND type = 'U';
   `);
 
-  if (exists.recordset.length === 0) {
-    const createTableQuery = `
+    if (exists.recordset.length === 0) {
+        const createTableQuery = `
       CREATE TABLE [dbo].[OperationClaims](
 	[Id] [uniqueidentifier] NOT NULL,
 	[Name] [nvarchar](100) NOT NULL,
@@ -610,29 +622,29 @@ export async function ensureOperationClaims() {
 ) ON [PRIMARY]
     `;
 
-    const alterIdDefault = `
+        const alterIdDefault = `
       ALTER TABLE [dbo].[OperationClaims]
       ADD DEFAULT (newid()) FOR [Id]
     `;
 
-    const request = pool.request();
-    await request.query(createTableQuery);
-    await request.query(alterIdDefault);
-  }
+        const request = pool.request();
+        await request.query(createTableQuery);
+        await request.query(alterIdDefault);
+    }
 }
 
 export async function ensureProductionInOuts() {
-  const pool = await getConnectionPool();
+    const pool = await getConnectionPool();
 
-  // tablo var mı?
-  const exists = await pool.request().query(`
+    // tablo var mı?
+    const exists = await pool.request().query(`
     SELECT 1
     FROM sys.objects
     WHERE object_id = OBJECT_ID('dbo.ProductionInOuts') AND type = 'U';
   `);
 
-  if (exists.recordset.length === 0) {
-    const createTableQuery = `
+    if (exists.recordset.length === 0) {
+        const createTableQuery = `
       CREATE TABLE [dbo].[ProductionInOuts](
 	[Id] [uniqueidentifier] NOT NULL,
 	[OutputDocumentDetailId] [uniqueidentifier] NOT NULL,
@@ -651,35 +663,35 @@ export async function ensureProductionInOuts() {
 ) ON [PRIMARY]
     `;
 
-    const alterIdDefault = `
+        const alterIdDefault = `
       ALTER TABLE [dbo].[ProductionInOuts]
       ADD DEFAULT (newid()) FOR [Id]
     `;
 
-    const alterTempDocumentDetailIdDefault = `
+        const alterTempDocumentDetailIdDefault = `
       ALTER TABLE [dbo].[ProductionInOuts]
       ADD DEFAULT ('00000000-0000-0000-0000-000000000000') FOR [TempDocumentDetailId]
     `;
 
-    const request = pool.request();
-    await request.query(createTableQuery);
-    await request.query(alterIdDefault);
-    await request.query(alterTempDocumentDetailIdDefault);
-  }
+        const request = pool.request();
+        await request.query(createTableQuery);
+        await request.query(alterIdDefault);
+        await request.query(alterTempDocumentDetailIdDefault);
+    }
 }
 
 export async function ensureProducts() {
-  const pool = await getConnectionPool();
+    const pool = await getConnectionPool();
 
-  // tablo var mı?
-  const exists = await pool.request().query(`
+    // tablo var mı?
+    const exists = await pool.request().query(`
     SELECT 1
     FROM sys.objects
     WHERE object_id = OBJECT_ID('dbo.Products') AND type = 'U';
   `);
 
-  if (exists.recordset.length === 0) {
-    const createTableQuery = `
+    if (exists.recordset.length === 0) {
+        const createTableQuery = `
       CREATE TABLE [dbo].[Products](
 	[Id] [uniqueidentifier] NOT NULL,
 	[ParentId] [uniqueidentifier] NULL,
@@ -723,29 +735,29 @@ export async function ensureProducts() {
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
     `;
 
-    const alterIdDefault = `
+        const alterIdDefault = `
       ALTER TABLE [dbo].[Products]
       ADD DEFAULT (newid()) FOR [Id]
     `;
 
-    const request = pool.request();
-    await request.query(createTableQuery);
-    await request.query(alterIdDefault);
-  }
+        const request = pool.request();
+        await request.query(createTableQuery);
+        await request.query(alterIdDefault);
+    }
 }
 
 export async function ensureUnitCostByDates() {
-  const pool = await getConnectionPool();
+    const pool = await getConnectionPool();
 
-  // tablo var mı?
-  const exists = await pool.request().query(`
+    // tablo var mı?
+    const exists = await pool.request().query(`
     SELECT 1
     FROM sys.objects
     WHERE object_id = OBJECT_ID('dbo.UnitCostByDates') AND type = 'U';
   `);
 
-  if (exists.recordset.length === 0) {
-    const createTableQuery = `
+    if (exists.recordset.length === 0) {
+        const createTableQuery = `
       CREATE TABLE [dbo].[UnitCostByDates](
 	[Id] [uniqueidentifier] NOT NULL,
 	[Date] [datetime2](7) NULL,
@@ -767,29 +779,29 @@ export async function ensureUnitCostByDates() {
 ) ON [PRIMARY]
     `;
 
-    const alterIdDefault = `
+        const alterIdDefault = `
       ALTER TABLE [dbo].[UnitCostByDates]
       ADD DEFAULT (newid()) FOR [Id]
     `;
 
-    const request = pool.request();
-    await request.query(createTableQuery);
-    await request.query(alterIdDefault);
-  }
+        const request = pool.request();
+        await request.query(createTableQuery);
+        await request.query(alterIdDefault);
+    }
 }
 
 export async function ensureUserOperationClaims() {
-  const pool = await getConnectionPool();
+    const pool = await getConnectionPool();
 
-  // tablo var mı?
-  const exists = await pool.request().query(`
+    // tablo var mı?
+    const exists = await pool.request().query(`
     SELECT 1
     FROM sys.objects
     WHERE object_id = OBJECT_ID('dbo.UserOperationClaims') AND type = 'U';
   `);
 
-  if (exists.recordset.length === 0) {
-    const createTableQuery = `
+    if (exists.recordset.length === 0) {
+        const createTableQuery = `
       CREATE TABLE [dbo].[UserOperationClaims](
 	[Id] [uniqueidentifier] NOT NULL,
 	[UserId] [uniqueidentifier] NOT NULL,
@@ -806,25 +818,25 @@ export async function ensureUserOperationClaims() {
 ) ON [PRIMARY]
     `;
 
-    const alterIdDefault = `
+        const alterIdDefault = `
       ALTER TABLE [dbo].[UserOperationClaims]
       ADD DEFAULT (newid()) FOR [Id]
     `;
 
-    const request = pool.request();
-    await request.query(createTableQuery);
-    await request.query(alterIdDefault);
-  }
+        const request = pool.request();
+        await request.query(createTableQuery);
+        await request.query(alterIdDefault);
+    }
 }
 
 export async function ensureUsers() {
-  const pool = await getConnectionPool();
+    const pool = await getConnectionPool();
 
-  const exists = await pool.request().query(`
+    const exists = await pool.request().query(`
     SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID('dbo.Users') AND type='U';
   `);
-  if (exists.recordset.length === 0) {
-    const createTableQuery = `
+    if (exists.recordset.length === 0) {
+        const createTableQuery = `
       CREATE TABLE [dbo].[Users](
         [Id] [uniqueidentifier] NOT NULL,
         [FirstName] [nvarchar](100) NOT NULL,
@@ -846,27 +858,27 @@ export async function ensureUsers() {
       )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
       ) ON [PRIMARY]`;
 
-    const alterTableQuery = `
+        const alterTableQuery = `
       ALTER TABLE [dbo].[Users] ADD CONSTRAINT DF_Users_Id DEFAULT (newid()) FOR [Id]`;
 
-    const request = pool.request();
-    await request.query(createTableQuery);
-    await request.query(alterTableQuery);
-  }
+        const request = pool.request();
+        await request.query(createTableQuery);
+        await request.query(alterTableQuery);
+    }
 }
 
 export async function ensureUserTableLocks() {
-  const pool = await getConnectionPool();
+    const pool = await getConnectionPool();
 
-  // tablo var mı?
-  const exists = await pool.request().query(`
+    // tablo var mı?
+    const exists = await pool.request().query(`
     SELECT 1
     FROM sys.objects
     WHERE object_id = OBJECT_ID('dbo.UserTableLocks') AND type = 'U';
   `);
 
-  if (exists.recordset.length === 0) {
-    const createTableQuery = `
+    if (exists.recordset.length === 0) {
+        const createTableQuery = `
      CREATE TABLE [dbo].[UserTableLocks](
 	[Id] [uniqueidentifier] NOT NULL,
 	[TableName] [nvarchar](max) NULL,
@@ -883,49 +895,49 @@ export async function ensureUserTableLocks() {
 ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
     `;
 
-    const alterIdDefault = `
+        const alterIdDefault = `
       ALTER TABLE [dbo].[UserTableLocks]
       ADD DEFAULT (newid()) FOR [Id]
     `;
 
-    const request = pool.request();
-    await request.query(createTableQuery);
-    await request.query(alterIdDefault);
-  }
+        const request = pool.request();
+        await request.query(createTableQuery);
+        await request.query(alterIdDefault);
+    }
 }
 
 /**
  * Gerekli DbSync yardımcı tabloların kontrolü ve kluşturulması
  */
 export async function ensureSyncStateTable() {
-  const pool = await getConnectionPool();
+    const pool = await getConnectionPool();
 
-  const exists = await pool.request().query(`
+    const exists = await pool.request().query(`
     SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID('dbo.SyncState') AND type='U';
   `);
-  if (exists.recordset.length === 0) {
-    await pool.request().query(`
+    if (exists.recordset.length === 0) {
+        await pool.request().query(`
       CREATE TABLE dbo.SyncState (TableName sysname PRIMARY KEY, LastSyncVersion bigint NOT NULL);
     `);
-  }
-
-  const setTables = new Set();
-  (CONFIG.enableChangeTracking?.tables || []).forEach(t => setTables.add(t));
-  (CONFIG.flows || []).forEach(f => setTables.add(f.table));
-
-  for (const t of setTables) {
-    const r = await pool.request().input('t', sql.NVarChar, t)
-      .query(`SELECT 1 FROM dbo.SyncState WHERE TableName=@t;`);
-    if (r.recordset.length === 0) {
-      await pool.request().input('t', sql.NVarChar, t)
-        .query(`INSERT INTO dbo.SyncState(TableName, LastSyncVersion) VALUES(@t, 0);`);
     }
-  }
+
+    const setTables = new Set();
+    (CONFIG.enableChangeTracking?.tables || []).forEach(t => setTables.add(t));
+    (CONFIG.flows || []).forEach(f => setTables.add(f.table));
+
+    for (const t of setTables) {
+        const r = await pool.request().input('t', sql.NVarChar, t)
+            .query(`SELECT 1 FROM dbo.SyncState WHERE TableName=@t;`);
+        if (r.recordset.length === 0) {
+            await pool.request().input('t', sql.NVarChar, t)
+                .query(`INSERT INTO dbo.SyncState(TableName, LastSyncVersion) VALUES(@t, 0);`);
+        }
+    }
 }
 
 export async function ensureCleanQueue() {
-  const pool = await getConnectionPool();
-  await pool.request().query(`
+    const pool = await getConnectionPool();
+    await pool.request().query(`
 IF NOT EXISTS (
   SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'dbo.CleanQueue') AND type = 'U'
 )
@@ -948,8 +960,8 @@ END;
 }
 
 export async function ensureApplyLog() {
-  const pool = await getConnectionPool();
-  const ddlTable = `
+    const pool = await getConnectionPool();
+    const ddlTable = `
 IF NOT EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ApplyLog]') AND type in (N'U'))
 BEGIN
   CREATE TABLE [dbo].[ApplyLog](
@@ -962,21 +974,21 @@ BEGIN
   );
 END;`;
 
-  const ddlColumn = `
+    const ddlColumn = `
 IF COL_LENGTH('dbo.ApplyLog', 'BatchId') IS NULL
 BEGIN
   ALTER TABLE dbo.ApplyLog ADD BatchId uniqueidentifier NULL;
 END
 `;
 
-  const ddlIndex = `
+    const ddlIndex = `
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ApplyLog_BatchId' AND object_id = OBJECT_ID('dbo.ApplyLog'))
 BEGIN
   CREATE INDEX IX_ApplyLog_BatchId ON dbo.ApplyLog(BatchId);
 END
 `;
 
-  await pool.request().query(ddlTable);
-  await pool.request().query(ddlColumn);
-  await pool.request().query(ddlIndex);
+    await pool.request().query(ddlTable);
+    await pool.request().query(ddlColumn);
+    await pool.request().query(ddlIndex);
 }

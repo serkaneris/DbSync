@@ -8,10 +8,12 @@ import { prepareApplicationStartup } from './features/setup/setup.startup.js';
 import { startPeriodicProducer } from './features/producer/producer.job.js';
 
 export async function initializeApp() {
-  await getConnectionPool();
-  console.log('✅ DB bağlantısı hazır');
-
+  
   await prepareApplicationStartup();
+  console.log('✅ Uygulama başlangıç hazırlığı tamamlandı');
+
+  await getConnectionPool();
+   console.log('✅ DB bağlantısı hazır');
 
   const app = express();
   app.use(express.json({ limit: '5mb' }));
