@@ -110,10 +110,32 @@ export const DB_CONN =
     return conn;
   })();
 
+  // export const MASTER_DB_CONN =
+  // (() => {
+  //   const conn =
+  //     process.env.MASTER_DB_CONN
+  //     ?? CONFIG?.db?.master_conn
+  //     ?? (() => { throw new Error('[config] MASTER_DB_CONN bulunamadı (ENV veya CONFIG.db.master_conn).'); })();
+
+  //   // Eğer bağlantı bir nesneyse, timeout ekle
+  //   if (typeof conn === 'object') {
+  //     return {
+  //       ...conn,
+  //       requestTimeout: conn.requestTimeout || 120000,   // 120 saniye
+  //       connectionTimeout: conn.connectionTimeout || 30000,
+  //     };
+  //   }
+
+  //   // Eğer bağlantı string ise, değiştirmeden döndür
+  //   return conn;
+  // })();
+
 export const SHARED_SECRET =
   process.env.SHARED_SECRET
   ?? CONFIG?.security?.sharedSecret
   ?? (() => { throw new Error('[config] SHARED_SECRET bulunamadı (ENV veya CONFIG.security.sharedSecret).'); })();
+
+export const IS_ENSURE_TABLES = CONFIG.isEnsureTables === true;
 
 // Küçük yardımcı
 export function cfg(key, defVal = undefined) {

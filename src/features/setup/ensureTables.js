@@ -1,5 +1,22 @@
 import { getConnectionPool, sql } from '../../core/db/mssql.js';
-import { CONFIG } from '../../core/config.js';
+import { CONFIG} from '../../core/config.js';
+
+export async function ensureDb() {
+  const pool = await getConnectionPool();
+
+  const exists = await pool.request().query(`
+    SELECT DB_ID(N'CostDb') AS DbId
+  `);
+  if (exists.recordset.length === 0) {
+    const createDbQuery = `
+   CREATE DATABASE [CostDb]
+      `;
+
+    
+    const request = pool.request();
+    await request.query(createDbQuery);
+  }
+}
 
 /**
  * Gerekli Ana tabloların Kontrolü ve Oluşturulması
