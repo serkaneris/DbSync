@@ -21,7 +21,13 @@ export async function enableDatabaseCT() {
 }
 
 export async function enableTableCT() {
-  if (!CONFIG.enableChangeTracking || CONFIG.enableChangeTracking.enable === false) return;
+
+  console.log('control,', CONFIG.enableChangeTracking, CONFIG.enableChangeTracking.enable, (!CONFIG.enableChangeTracking || CONFIG.enableChangeTracking.enable === false))
+  if (!CONFIG.enableChangeTracking || CONFIG.enableChangeTracking.enable === false) {
+    console.log("dönüş yapıldı");
+    return;
+  }
+
   const pool = await getConnectionPool();
   const trackCols = CONFIG.enableChangeTracking.trackColumnsUpdated !== false;
   const tables = CONFIG.enableChangeTracking.tables || [];
@@ -34,11 +40,13 @@ export async function enableTableCT() {
     const rs2 = await pool.request().input('oid', sql.Int, oid).query(`
       SELECT 1 AS x FROM sys.change_tracking_tables WHERE object_id=@oid;
     `);
+
+    console.log("len", rs2.recordset.length)
     if (rs2.recordset.length === 0) {
       await pool.request().query(`
         ALTER TABLE ${t} ENABLE CHANGE_TRACKING WITH (TRACK_COLUMNS_UPDATED = ${trackCols ? 'ON' : 'OFF'});
-        Update ${t} set Status=0 where Status=0
-        Update ${t} set Status=1 where Status=1
+        Update ${t} set Status=0 where Status=0;
+        Update ${t} set Status=1 where Status=1;
       `);
     }
   }

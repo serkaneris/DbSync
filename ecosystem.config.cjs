@@ -2,10 +2,9 @@
 module.exports = {
   apps: [
     {
-      name: "DbSync-a",
+      name: "Erp-DbSync",
       script: "./index.js",
       cwd: ".",
-      // Windows yollarını ters-eksiyle yazabilirsiniz; node hepsini anlar.
       node_args: "--max-old-space-size=8192",
       env: {
         NODE_ENV: "production",
@@ -15,14 +14,12 @@ module.exports = {
       }
     },
     {
-      name: "DbSync-b-Debug",
+      name: "Cost-DbSync",
       script: "./index.js",
-      node_args: "--inspect=9229",
-      watch: false,
       cwd: ".",
       node_args: "--max-old-space-size=8192",
       env: {
-        NODE_ENV: "development",
+        NODE_ENV: "production",
         // B için .env ve config:
         ENV_PATH: "env/.env.app2",
         CONFIG_PATH: "./configs/app2.config.json"

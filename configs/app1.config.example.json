@@ -10,9 +10,9 @@
     "retentionDays": 7,
     "trackColumnsUpdated": true,
     "tables": [
+      "dbo.Businesses",
       "dbo.Documents",
       "dbo.DocumentDetails",
-      "dbo.Businesses",
       "dbo.CalculateCostOperations",
       "dbo.ExpenseDiscountDetails",
       "dbo.Inventories",
@@ -29,13 +29,13 @@
   "_comment": "flows kısmında karşıya gönderilecek tablolar belirtilir. Birden fazla tablo eklenebilir.",
   "flows": [
     {
+      "table": "dbo.Businesses"
+    },
+    {
       "table": "dbo.Documents"
     },
     {
       "table": "dbo.DocumentDetails"
-    },
-    {
-      "table": "dbo.Businesses"
     },
     {
       "table": "dbo.CalculateCostOperations"
